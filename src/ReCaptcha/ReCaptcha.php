@@ -44,6 +44,12 @@ class ReCaptcha
     private $secret;
 
     /**
+     * Public key for the site.
+     * @var string
+     */
+    private $public;
+
+    /**
      * Method used to communicate with service. Defaults to POST request.
      * @var RequestMethod
      */
@@ -56,7 +62,7 @@ class ReCaptcha
      * @param RequestMethod $requestMethod method used to send the request. Defaults to POST.
      * @throws \RuntimeException if $secret is invalid
      */
-    public function __construct($secret, RequestMethod $requestMethod = null)
+    public function __construct($secret, $public, RequestMethod $requestMethod = null)
     {
         if (empty($secret)) {
             throw new \RuntimeException('No secret provided');
@@ -66,12 +72,21 @@ class ReCaptcha
             throw new \RuntimeException('The provided secret must be a string');
         }
 
+        if (empty($public)) {
+            throw new \RuntimeException('No public provided');
+        }
+
+        if (!is_string($public)) {
+            throw new \RuntimeException('The provided public must be a string');
+        }
+
         $this->secret = $secret;
+        $this->public = $public;
 
         if (!is_null($requestMethod)) {
             $this->requestMethod = $requestMethod;
         } else {
-            $this->requestMethod = new RequestMethod\Post();
+            $this->requestMethod = new RequestMethod\CurlPost();
         }
     }
 
@@ -94,5 +109,23 @@ class ReCaptcha
         $params = new RequestParameters($this->secret, $response, $remoteIp, self::VERSION);
         $rawResponse = $this->requestMethod->submit($params);
         return Response::fromJson($rawResponse);
+    }
+
+    /**
+     * Get HTML code
+     * @return string
+     */
+    public function getHtml()
+    {
+        return '<div class="g-recaptcha" data-sitekey="'.$this->public.'"></div>';
+    }
+
+    /**
+     * Get url javascript
+     * @return string
+     */
+    public function getUrlJavascript()
+    {
+        return 'https://www.google.com/recaptcha/api.js';
     }
 }
